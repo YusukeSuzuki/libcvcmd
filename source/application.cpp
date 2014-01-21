@@ -3,6 +3,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 
 #include <iostream>
 #include <vector>
@@ -55,6 +56,9 @@ int application::exec(int argc, char* argv[])
 	options.add_options()
 		("help,h", "print this message.")
 		("without-display", "suppress displaying image with window")
+		("only-output",
+			po::value<std::vector<std::string>>()->default_value(
+				std::vector<std::string>({}),""), "image name to output")
 		("only-display",
 			po::value<std::vector<std::string>>()->default_value(
 				std::vector<std::string>({}),""), "window name to display")
@@ -92,20 +96,27 @@ int application::exec(int argc, char* argv[])
 	}
 
 	auto window_names = vm["only-display"].as<std::vector<std::string>>();
+	auto output_names = vm["only-output"].as<std::vector<std::string>>();
 
 	// lambda functions
 	auto per_image = [this](
 		const std::vector<std::string>& filenames, bool display,
-		const std::vector<std::string>& window_names)
+		const std::vector<std::string>& window_names,
+		const std::vector<std::string>& output_names)
 	{
 		std::set<std::string> window_names_set(
 			window_names.begin(), window_names.end());
+		std::set<std::string> output_names_set(
+			output_names.begin(), output_names.end());
 
 		for(const auto& filename : filenames)
 		{
 			bool have_to_quit = false;
 
 			cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
+
+			const std::string basename =
+				boost::filesystem::path(filename).filename().native();
 
 			if( int ret = on_image(image) ) return ret;
 
@@ -132,8 +143,17 @@ int application::exec(int argc, char* argv[])
 
 			for(const auto& named_image : implementation_->output_images_)
 			{
-				cv::imwrite(named_image.first, named_image.second);
+				if( !output_names_set.empty() &&
+					output_names_set.count(named_image.first) == 0)
+				{
+					continue;
+				}
+
+				cv::imwrite(
+					basename + "." + named_image.first + ".png", named_image.second);
 			}
+
+			implementation_->output_images_.clear();
 
 			if(have_to_quit) break;
 		}
@@ -151,7 +171,7 @@ int application::exec(int argc, char* argv[])
 	// do image processing
 	if( does_process_per_image() )
 	{
-		return per_image(filenames, display, window_names);
+		return per_image(filenames, display, window_names, output_names);
 	}
 
 	return whole_images(images);
