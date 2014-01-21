@@ -5,6 +5,8 @@
 #include <boost/program_options.hpp>
 
 #include <iostream>
+#include <vector>
+#include <set>
 
 namespace cvcmd
 {
@@ -52,12 +54,13 @@ int application::exec(int argc, char* argv[])
 
 	options.add_options()
 		("help,h", "print this message.")
-		("without-display",
-		 "suppress displaying image with window")
+		("without-display", "suppress displaying image with window")
+		("only-display",
+			po::value<std::vector<std::string>>()->default_value(
+				std::vector<std::string>({}),""), "window name to display")
 		("input-file",
 			po::value<std::vector<std::string>>()->default_value(
-				std::vector<std::string>({}),""),
-			"input files")
+				std::vector<std::string>({}),""), "input files")
 		;
 	
 	po::positional_options_description hidden;
@@ -88,12 +91,20 @@ int application::exec(int argc, char* argv[])
 		return 0;
 	}
 
+	auto window_names = vm["only-display"].as<std::vector<std::string>>();
+
 	// lambda functions
 	auto per_image = [this](
-		const std::vector<std::string>& filenames, bool display)
+		const std::vector<std::string>& filenames, bool display,
+		const std::vector<std::string>& window_names)
 	{
+		std::set<std::string> window_names_set(
+			window_names.begin(), window_names.end());
+
 		for(const auto& filename : filenames)
 		{
+			bool have_to_quit = false;
+
 			cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
 
 			if( int ret = on_image(image) ) return ret;
@@ -102,11 +113,19 @@ int application::exec(int argc, char* argv[])
 			{
 				for(const auto& named_image : implementation_->display_images_)
 				{
+					if( !window_names_set.empty() &&
+						window_names_set.count(named_image.first) == 0)
+					{
+						continue;
+					}
+
 					cv::imshow(named_image.first, named_image.second);
 				}
 
-				cv::waitKey(0);
+				auto key = cv::waitKey(0);
 				cv::destroyAllWindows();
+
+				have_to_quit = key == 'q' ? true : false;
 			}
 
 			implementation_->display_images_.clear();
@@ -115,6 +134,8 @@ int application::exec(int argc, char* argv[])
 			{
 				cv::imwrite(named_image.first, named_image.second);
 			}
+
+			if(have_to_quit) break;
 		}
 
 		return 0;
@@ -130,7 +151,7 @@ int application::exec(int argc, char* argv[])
 	// do image processing
 	if( does_process_per_image() )
 	{
-		return per_image(filenames, display);
+		return per_image(filenames, display, window_names);
 	}
 
 	return whole_images(images);
