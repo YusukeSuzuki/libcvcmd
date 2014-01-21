@@ -65,6 +65,8 @@ int application::exec(int argc, char* argv[])
 		("input-file",
 			po::value<std::vector<std::string>>()->default_value(
 				std::vector<std::string>({}),""), "input files")
+		("output-format", po::value<std::string>()->default_value("png"),
+			"output format suffix")
 		;
 	
 	po::positional_options_description hidden;
@@ -86,6 +88,22 @@ int application::exec(int argc, char* argv[])
 
 	bool display = !(vm.count("without-display") > 0);
 
+	const std::string suffix = vm["output-format"].as<std::string>();
+
+	{
+		// check file format support
+		cv::Mat temp_image(128,128, CV_8UC3);
+		temp_image = cv::Scalar(255);
+		std::vector<unsigned char> temp_buf;
+
+		if( !cv::imencode("." + suffix, temp_image, temp_buf) )
+		{
+			std::cout << "output fileformat " << suffix <<
+				" not supported by OpenCV." << std::endl;
+			return 0;
+		}
+	}
+
 	// read images
 	auto filenames = vm["input-file"].as<std::vector<std::string>>();
 
@@ -102,7 +120,8 @@ int application::exec(int argc, char* argv[])
 	auto per_image = [this](
 		const std::vector<std::string>& filenames, bool display,
 		const std::vector<std::string>& window_names,
-		const std::vector<std::string>& output_names)
+		const std::vector<std::string>& output_names,
+		const std::string& suffix)
 	{
 		std::set<std::string> window_names_set(
 			window_names.begin(), window_names.end());
@@ -150,7 +169,7 @@ int application::exec(int argc, char* argv[])
 				}
 
 				cv::imwrite(
-					basename + "." + named_image.first + ".png", named_image.second);
+					basename + "." + named_image.first + "." + suffix, named_image.second);
 			}
 
 			implementation_->output_images_.clear();
@@ -171,7 +190,7 @@ int application::exec(int argc, char* argv[])
 	// do image processing
 	if( does_process_per_image() )
 	{
-		return per_image(filenames, display, window_names, output_names);
+		return per_image(filenames, display, window_names, output_names, suffix);
 	}
 
 	return whole_images(images);
