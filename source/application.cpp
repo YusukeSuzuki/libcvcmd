@@ -56,6 +56,7 @@ int application::exec(int argc, char* argv[])
 	options.add_options()
 		("help,h", "print this message.")
 		("without-display", "suppress displaying image with window")
+		("without-output", "suppress saving output image")
 		("only-output",
 			po::value<std::vector<std::string>>()->default_value(
 				std::vector<std::string>({}),""), "image name to output")
@@ -86,7 +87,8 @@ int application::exec(int argc, char* argv[])
 		return 0;
 	}
 
-	bool display = !(vm.count("without-display") > 0);
+	const bool display = !(vm.count("without-display") > 0);
+	const bool output = !(vm.count("without-output") > 0);
 
 	const std::string suffix = vm["output-format"].as<std::string>();
 
@@ -118,7 +120,8 @@ int application::exec(int argc, char* argv[])
 
 	// lambda functions
 	auto per_image = [this](
-		const std::vector<std::string>& filenames, bool display,
+		const std::vector<std::string>& filenames,
+		bool display, bool output,
 		const std::vector<std::string>& window_names,
 		const std::vector<std::string>& output_names,
 		const std::string& suffix)
@@ -152,24 +155,38 @@ int application::exec(int argc, char* argv[])
 					cv::imshow(named_image.first, named_image.second);
 				}
 
-				auto key = cv::waitKey(0);
-				cv::destroyAllWindows();
+				while(true)
+				{
+					auto key = cv::waitKey(0);
 
-				have_to_quit = key == 'q' ? true : false;
+					if( key != ' ' && key != 'q' )
+					{
+						continue;
+					}
+
+					have_to_quit = key == 'q' ? true : false;
+
+					break;
+				}
+
+				cv::destroyAllWindows();
 			}
 
 			implementation_->display_images_.clear();
 
-			for(const auto& named_image : implementation_->output_images_)
+			if(output)
 			{
-				if( !output_names_set.empty() &&
-					output_names_set.count(named_image.first) == 0)
+				for(const auto& named_image : implementation_->output_images_)
 				{
-					continue;
-				}
+					if( !output_names_set.empty() &&
+						output_names_set.count(named_image.first) == 0)
+					{
+						continue;
+					}
 
-				cv::imwrite(
-					basename + "." + named_image.first + "." + suffix, named_image.second);
+					cv::imwrite(
+						basename + "." + named_image.first + "." + suffix, named_image.second);
+				}
 			}
 
 			implementation_->output_images_.clear();
@@ -190,7 +207,7 @@ int application::exec(int argc, char* argv[])
 	// do image processing
 	if( does_process_per_image() )
 	{
-		return per_image(filenames, display, window_names, output_names, suffix);
+		return per_image(filenames, display, output, window_names, output_names, suffix);
 	}
 
 	return whole_images(images);
