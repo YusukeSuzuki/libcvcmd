@@ -19,7 +19,9 @@ public:
 		process_per_image_(true),
 		display_image_(false),
 		display_images_(),
-		output_images_()
+		output_images_(),
+		opts_(9),
+		opt_descs_(9)
 	{
 	}
 
@@ -33,6 +35,9 @@ public:
 
 	std::map<std::string, cv::Mat> display_images_;
 	std::map<std::string, cv::Mat> output_images_;
+
+	std::vector<std::string> opts_;
+	std::vector<std::string> opt_descs_;
 };
 
 application::application() :
@@ -69,6 +74,16 @@ int application::exec(int argc, char* argv[])
 		("output-format", po::value<std::string>()->default_value("png"),
 			"output format suffix")
 		;
+
+	for(size_t i = 0; i < implementation_->opt_descs_.size(); ++i)
+	{
+		if( implementation_->opt_descs_[i].empty() ) continue;
+
+		options.add_options()
+			(("opt" + std::to_string(i+1)).c_str(),
+				po::value<std::string>(&implementation_->opts_[i]),
+				implementation_->opt_descs_[i].c_str());
+	}
 	
 	po::positional_options_description hidden;
 	hidden.add("input-file", -1);
@@ -242,6 +257,30 @@ void application::add_display_image(const std::string& name, const cv::Mat& imag
 {
 	implementation_->display_images_[name] = image;
 }
+
+const std::vector<std::string>& application::opts() const
+{
+	return implementation_->opts_;
+}
+
+#define TEMP_MACRO_FUNC_DEF(X) \
+application& application::opt ## X ## _description(const std::string& desc) \
+{ \
+	implementation_->opt_descs_[X-1] = desc; \
+	return *this; \
+}
+
+TEMP_MACRO_FUNC_DEF(1)
+TEMP_MACRO_FUNC_DEF(2)
+TEMP_MACRO_FUNC_DEF(3)
+TEMP_MACRO_FUNC_DEF(4)
+TEMP_MACRO_FUNC_DEF(5)
+TEMP_MACRO_FUNC_DEF(6)
+TEMP_MACRO_FUNC_DEF(7)
+TEMP_MACRO_FUNC_DEF(8)
+TEMP_MACRO_FUNC_DEF(9)
+
+#undef TEMP_MACRO_FUNC_DEF
 
 /**
  * virtual functions

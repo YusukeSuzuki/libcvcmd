@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace cvcmd
 {
@@ -51,6 +52,18 @@ public:
 	virtual void pre_exec(int argc, char* argv[]);
 
 	virtual std::string description();
+
+	const std::vector<std::string>& opts() const;
+
+	application& opt1_description(const std::string& desc);
+	application& opt2_description(const std::string& desc);
+	application& opt3_description(const std::string& desc);
+	application& opt4_description(const std::string& desc);
+	application& opt5_description(const std::string& desc);
+	application& opt6_description(const std::string& desc);
+	application& opt7_description(const std::string& desc);
+	application& opt8_description(const std::string& desc);
+	application& opt9_description(const std::string& desc);
 
 private:
 	class implementation;

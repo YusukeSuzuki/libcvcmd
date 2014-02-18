@@ -5,9 +5,11 @@
 class application : public cvcmd::application
 {
 public:
-	application()
+	application() :
+		cvcmd::application()
 	{
 		display_image(true);
+		opt1_description("Text to write on image.");
 	}
 
 	virtual std::string description()
@@ -19,7 +21,12 @@ public:
 
 	virtual int on_image(const cv::Mat& image)
 	{
-		add_display_image("image", image);
+		cv::Mat display_image(image);
+
+		cv::putText(
+			display_image, opts()[0], {10,70}, cv::FONT_HERSHEY_SIMPLEX, 2, {0,0,255});
+
+		add_display_image("image", display_image);
 		return 0;
 	}
 };
