@@ -20,8 +20,8 @@ public:
 		display_image_(false),
 		display_images_(),
 		output_images_(),
-		opts_(9),
-		opt_descs_(9)
+		opts_(10),
+		opt_descs_(10)
 	{
 	}
 
@@ -133,6 +133,8 @@ int application::exec(int argc, char* argv[])
 	auto window_names = vm["only-display"].as<std::vector<std::string>>();
 	auto output_names = vm["only-output"].as<std::vector<std::string>>();
 
+	pre_exec(argc, argv);
+
 	// lambda functions
 	auto per_image = [this](
 		const std::vector<std::string>& filenames,
@@ -151,6 +153,12 @@ int application::exec(int argc, char* argv[])
 			bool have_to_quit = false;
 
 			cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
+
+			if(image.empty())
+			{
+				std::cerr << "imread() failed, skip: " << filename << std::endl;
+				continue;
+			}
 
 			const std::string basename =
 				boost::filesystem::path(filename).filename().native();
@@ -266,10 +274,11 @@ const std::vector<std::string>& application::opts() const
 #define TEMP_MACRO_FUNC_DEF(X) \
 application& application::opt ## X ## _description(const std::string& desc) \
 { \
-	implementation_->opt_descs_[X-1] = desc; \
+	implementation_->opt_descs_[X] = desc; \
 	return *this; \
 }
 
+TEMP_MACRO_FUNC_DEF(0)
 TEMP_MACRO_FUNC_DEF(1)
 TEMP_MACRO_FUNC_DEF(2)
 TEMP_MACRO_FUNC_DEF(3)

@@ -55,6 +55,7 @@ public:
 
 	const std::vector<std::string>& opts() const;
 
+	application& opt0_description(const std::string& desc);
 	application& opt1_description(const std::string& desc);
 	application& opt2_description(const std::string& desc);
 	application& opt3_description(const std::string& desc);
