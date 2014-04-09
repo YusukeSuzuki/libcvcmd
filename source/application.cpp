@@ -80,7 +80,7 @@ int application::exec(int argc, char* argv[])
 		if( implementation_->opt_descs_[i].empty() ) continue;
 
 		options.add_options()
-			(("opt" + std::to_string(i+1)).c_str(),
+			(("opt" + std::to_string(i)).c_str(),
 				po::value<std::string>(&implementation_->opts_[i]),
 				implementation_->opt_descs_[i].c_str());
 	}
@@ -207,8 +207,19 @@ int application::exec(int argc, char* argv[])
 						continue;
 					}
 
-					cv::imwrite(
-						basename + "." + named_image.first + "." + suffix, named_image.second);
+					if( named_image.second.depth() == CV_32F ||
+						named_image.second.depth() == CV_32F)
+					{
+						cv::Mat out;
+						named_image.second.convertTo(out, CV_32F, 255);
+						cv::imwrite(
+							basename + "." + named_image.first + "." + suffix, out);
+					}
+					else
+					{
+						cv::imwrite(
+							basename + "." + named_image.first + "." + suffix, named_image.second);
+					}
 				}
 			}
 
